@@ -38,40 +38,65 @@ def get_db_connection():
     except Error as e:
         print(f"Error: {e}")
 
-# @app.route('/members', methods=['POST'])
-# def add_member():
-#     try:
-#         member_data = member_schema.load(request.json)
-#     except ValidationError as e:
-#         print(f"Error: {e}")
-#         return jsonify(e.messages), 400
+
+@app.route('/members', methods=['POST'])
+def add_member():
+    try:
+        member_data = member_schema.load(request.json)
+    except ValidationError as e:
+        print(f"Error: {e}")
+        return jsonify(e.messages), 400
     
-#     try:
-#         conn = get_db_connection()
-#         if conn is None:
-#             return jsonify({"error": "Database connection failed."}), 500
-#         cursor = conn.cursor(dictionary = True)
+    try:
+        conn = get_db_connection()
+        if conn is None:
+            return jsonify({"error": "Database connection failed."}), 500
+        cursor = conn.cursor(dictionary = True)
 
-#         new_member = (member_data['name'], member_data['age'])
+        new_member = (member_data['name'], member_data['age'])
 
-#         query = 'INSERT INTO members(name, age) VALUES (%s, %s)'
+        query = 'INSERT INTO members(name, age) VALUES (%s, %s)'
 
-#         cursor.execute(query, new_member)
-#         conn.commit()
-#         return jsonify({'message': 'Member added successfully.'}),201
+        cursor.execute(query, new_member)
+        conn.commit()
+        return jsonify({'message': 'Member added successfully.'}),201
     
-#     except Error as e:
-#         print(f"Error: {e}")
-#         return jsonify({'error': 'Internal server error'}), 500
+    except Error as e:
+        print(f"Error: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
     
-#     finally:
-#         if conn and conn.is_connected():
-#             cursor.close()
-#             conn.close()
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
 
-# @app.route('/members/<int:id>', methods=['GET'])
-# def get_member(id):
-#     pass
+@app.route('/members/<int:member_id>', methods=['GET'])
+def get_member(member_id):
+    try:
+        conn = get_db_connection()
+        if conn is None:
+            return jsonify({"error": "Database connection failed."}), 500
+        cursor = conn.cursor(dictionary=True)
+
+        selected_member = (member_id, )
+
+        query = "SELECT name, age, member_id FROM members WHERE member_id = %s"
+
+        cursor.execute(query, selected_member)
+
+        found_member = cursor.fetchone()
+
+        if not found_member:
+            return jsonify({"error": "Member not found."}), 404
+
+        return member_schema.jsonify(found_member)
+    except Error as e:
+        print(f"error: {e}")
+        return jsonify({"error": "Internal server errror."}), 500
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
 
 @app.route('/members', methods=['GET'])
 def get_members():
